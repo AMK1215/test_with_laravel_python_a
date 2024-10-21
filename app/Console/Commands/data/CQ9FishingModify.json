@@ -1,0 +1,18 @@
+{
+    "ProviderGames": [
+        {
+            "GameCode": "GO02",
+            "GameName": "Hero Fishing",
+            "GameType": 8,
+            "Category": "fish",
+            "ImageUrl": "https://pandashan.online/assets/slot_app/images/cq_9_fishing/GO02.png",
+            "ProviderGameType": null,
+            "ProviderCode": null,
+            "game_type_id": 4,
+            "product_id": 6
+        }
+    ],
+    "GamesList": null,
+    "ErrorCode": 0,
+    "ErrorMessage": null
+}
