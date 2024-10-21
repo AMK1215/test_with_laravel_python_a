@@ -87,3 +87,14 @@ SEAMLESS_PASSWORD=pass@word1
 SEAMLESS_SECRET_KEY=bsWs4A
 SEAMLESS_API_URL=https://prodmd.9977997.com
 PROVIDER_INITIAL_BALANCE=43645
+
+---------- python --------- install
+sudo apt update
+sudo apt install python3 python3-pip python3-venv
+python3 --version
+pip3 --version
+sudo apt install python3-venv
+pip install mysql-connector-python
+pip install pandas
+
+
