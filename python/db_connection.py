@@ -5,9 +5,9 @@ def connect_to_database():
     try:
         connection = mysql.connector.connect(
             host='127.0.0.1',       # Database host
-            database='gsc_shan',     # Laravel database name
+            database='python_a',     # Laravel database name
             user='root',             # Database username (adjust accordingly)
-            password='password123'   # Database password (adjust accordingly)
+            password='delighT@#$2024team'   # Database password (adjust accordingly)
         )
         if connection.is_connected():
             return connection
