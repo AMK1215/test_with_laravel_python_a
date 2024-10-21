@@ -24,7 +24,7 @@ def fetch_users_data(connection):
     cursor.execute("""
         SELECT users.*, wallets.balance
         FROM users
-        JOIN wallets ON users.id = wallets.user_id
+        JOIN wallets ON users.id = wallets.holder_id
     """)
     users = cursor.fetchall()
     print(users)
