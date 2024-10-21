@@ -15,10 +15,21 @@ def connect_to_database():
         print(f"Error: {e}")
         return None
 
+# def fetch_users_data(connection):
+#     cursor = connection.cursor(dictionary=True)
+#     cursor.execute("SELECT * FROM users")  # Fetch data from 'users' table
+#     return cursor.fetchall()
 def fetch_users_data(connection):
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users")  # Fetch data from 'users' table
-    return cursor.fetchall()
+    cursor.execute("""
+        SELECT users.*, wallets.balance
+        FROM users
+        JOIN wallets ON users.id = wallets.user_id
+    """)
+    users = cursor.fetchall()
+    print(users)
+    return users
+
 
 def analyze_users_data(users):
     df = pd.DataFrame(users)
