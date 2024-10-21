@@ -16,9 +16,9 @@ def connect_to_database():
         print(f"Error: {e}")
         return None
 
+# Fetch users and wallets data (joined)
 def fetch_users_data(connection):
     cursor = connection.cursor(dictionary=True)
-    # Adjust the query based on the holder_type seen in the screenshot
     cursor.execute("""
         SELECT users.id, users.user_name, users.name, users.email, users.phone, users.type, wallets.balance
         FROM users
@@ -27,11 +27,10 @@ def fetch_users_data(connection):
     """)
     users = cursor.fetchall()
 
-    # Debugging: print the raw data returned from the query
+    # Debugging: print the raw data fetched from MySQL
     print("Raw Data Fetched from MySQL: ", users)
 
     return users
-
 
 # Perform analysis on the fetched data
 def analyze_users_data(users):
