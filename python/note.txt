@@ -5,3 +5,47 @@ WHERE wallets.holder_type = 'App\\Models\\User';
 
 
 curl -X POST https://www.allinonetestcase.online/predict_fraud -H "Content-Type: application/json" -d '{"Transactions": [{"MemberID": 1, "BetAmount": 100, "GameType": 1, "PayoutAmount": 0, "Status": 101}]}'
+
+sudo apt-get install supervisor
+sudo nano /etc/supervisor/conf.d/flask_fraud_detection.conf
+[program:flask_fraud_detection]
+command=python3 /path/to/fraud_detection.py
+directory=/path/to/your/app
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/flask_fraud.err.log
+stdout_logfile=/var/log/flask_fraud.out.log
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start flask_fraud_detection
+
+sudo supervisorctl status
+sudo supervisorctl restart flask_fraud_detection
+sudo tail -f /var/log/flask_fraud.out.log
+sudo tail -f /var/log/flask_fraud.err.log
+
+------
+change production mode
+pip3 install gunicorn
+#gunicorn -w 4 -b 0.0.0.0:5000 fraud_detection:app
+
+sudo nano /etc/supervisor/conf.d/flask_fraud_detection.conf
+
+
+[program:flask_fraud_detection]
+command=gunicorn -w 4 -b 0.0.0.0:5000 fraud_detection:app
+directory=/path/to/your/flask/app
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/flask_fraud.err.log
+stdout_logfile=/var/log/flask_fraud.out.log
+
+-----------
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl restart flask_fraud_detection
+
+sudo tail -f /var/log/flask_fraud.err.log
+sudo tail -f /var/log/flask_fraud.out.log
+
+
