@@ -2,3 +2,6 @@ SELECT users.id, users.user_name, users.name, users.email, users.phone, users.ty
 FROM users
 JOIN wallets ON users.id = wallets.holder_id
 WHERE wallets.holder_type = 'App\\Models\\User';
+
+
+curl -X POST https://www.allinonetestcase.online/predict_fraud -H "Content-Type: application/json" -d '{"Transactions": [{"MemberID": 1, "BetAmount": 100, "GameType": 1, "PayoutAmount": 0, "Status": 101}]}'

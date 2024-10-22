@@ -12,6 +12,8 @@ use App\Services\Slot\SlotWebhookService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Http;
+
 
 class PlaceBetNewVersionController extends Controller
 {
@@ -50,6 +52,28 @@ class PlaceBetNewVersionController extends Controller
             Redis::del("wallet:lock:$userId");
             return $validator->getResponse();
         }
+
+         // Step 1: Gather transaction data from the request
+        $transactionData = $request->all();
+
+        // Step 2: Send the data to the Python fraud detection service
+        $response = Http::post('https://www.allinonetestcase.online/predict_fraud', [
+            'Transactions' => $transactionData['Transactions'],  // Sending transactions to Flask for fraud check
+        ]);
+
+
+        // Step 3: Get the fraud prediction result
+        $isFraudulent = $response->json()['fraudulent'];
+
+        // Step 4: Handle fraud detection
+        if (in_array(1, $isFraudulent)) {
+            Redis::del("wallet:lock:$userId");
+            return response()->json(['message' => 'Fraud detected. Bet rejected.'], 403);  // Fraud detected, reject the bet
+        }
+
+        // Step 5: Continue processing the bet if no fraud detected
+        $before_balance = $request->getMember()->balanceFloat;
+
 
         // Retrieve transactions from the request
         $transactions = $validator->getRequestTransactions();
