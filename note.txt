@@ -97,4 +97,7 @@ sudo apt install python3-venv
 pip install mysql-connector-python
 pip install pandas
 
+pip install flask scikit-learn pandas
+
+
 
