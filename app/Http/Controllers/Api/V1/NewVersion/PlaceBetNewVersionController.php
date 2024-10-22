@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Http;
 
-
 class PlaceBetNewVersionController extends Controller
 {
     use NewVersionOptimizedBettingProcess;
@@ -48,12 +47,11 @@ class PlaceBetNewVersionController extends Controller
         $validator = $request->check();
 
         if ($validator->fails()) {
-            // Release Redis lock and return validation error response
             Redis::del("wallet:lock:$userId");
             return $validator->getResponse();
         }
 
-         // Step 1: Gather transaction data from the request
+        // Step 1: Gather transaction data from the request
         $transactionData = $request->all();
 
         // Step 2: Send the data to the Python fraud detection service
@@ -61,24 +59,32 @@ class PlaceBetNewVersionController extends Controller
             'Transactions' => $transactionData['Transactions'],  // Sending transactions to Flask for fraud check
         ]);
 
-
-        // Step 3: Get the fraud prediction result
-        $isFraudulent = $response->json()['fraudulent'];
-
-        // Step 4: Handle fraud detection
-        if (in_array(1, $isFraudulent)) {
+        // Step 3: Check if the response is valid and contains the 'fraudulent' key
+        if ($response->failed()) {
+            Log::error('Fraud detection service failed.', ['response' => $response->body()]);
             Redis::del("wallet:lock:$userId");
-            return response()->json(['message' => 'Fraud detected. Bet rejected.'], 403);  // Fraud detected, reject the bet
+            return response()->json(['message' => 'Fraud detection service failed.'], 500);
         }
+
+        $responseData = $response->json();
+        if (!isset($responseData['fraudulent'])) {
+            Log::error('Fraud detection service returned an invalid response', ['response' => $responseData]);
+            Redis::del("wallet:lock:$userId");
+            return response()->json([
+                'message' => 'Invalid response from fraud detection service.',
+                'details' => $responseData
+            ], 500);
+        }
+
+        // Step 4: Get the fraud prediction result safely
+        $isFraudulent = $responseData['fraudulent'];
 
         // Step 5: Continue processing the bet if no fraud detected
         $before_balance = $request->getMember()->balanceFloat;
 
-
         // Retrieve transactions from the request
         $transactions = $validator->getRequestTransactions();
 
-        // Check if the transactions are in the expected format
         if (!is_array($transactions) || empty($transactions)) {
             Redis::del("wallet:lock:$userId");
             return response()->json([
@@ -86,9 +92,6 @@ class PlaceBetNewVersionController extends Controller
                 'details' => $transactions,  // Provide details about the received data for debugging
             ], 400);  // 400 Bad Request
         }
-
-        // Read operations (happens outside the transaction)
-        $before_balance = $request->getMember()->balanceFloat;
 
         DB::beginTransaction();
         try {
@@ -102,33 +105,31 @@ class PlaceBetNewVersionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Redis::del("wallet:lock:$userId");
             Log::error('Error during placeBet', ['error' => $e]);
-
+            Redis::del("wallet:lock:$userId");
             return response()->json(['message' => $e->getMessage()], 500);
         }
 
         // After the transaction, handle the wallet updates separately
         try {
             foreach ($transactions as $transaction) {
-                // Assuming 'from' user is the one placing the bet and 'to' is the admin or system wallet
-                $fromUser = $request->getMember();
-                $toUser = User::adminUser();  // Admin or central system wallet
+                if (!isset($transaction->WagerID) || !isset($transaction->TransactionID)) {
+                    return response()->json(['message' => 'Invalid transaction data structure.'], 400);
+                }
 
                 $meta = [
-                    'wager_id' => $transaction->WagerID,               // Use object property access
+                    'wager_id' => $transaction->WagerID,
                     'event_id' => $request->getMessageID(),
-                    'seamless_transaction_id' => $transaction->TransactionID,  // Use object property access
+                    'seamless_transaction_id' => $transaction->TransactionID,
                 ];
 
-                // Call processTransfer for each transaction
                 $this->processTransfer(
-                    $fromUser,                        // From user
-                    $toUser,                          // To user (admin/system wallet)
-                    TransactionName::Stake,           // Transaction name (e.g., Stake)
-                    $transaction->TransactionAmount,  // Use object property access for TransactionAmount
-                    $transaction->Rate,               // Use object property access for Rate
-                    $meta                             // Meta data (wager id, event id, etc.)
+                    $request->getMember(),
+                    User::adminUser(),
+                    TransactionName::Stake,
+                    $transaction->TransactionAmount,
+                    $transaction->Rate,
+                    $meta
                 );
             }
 
@@ -145,7 +146,6 @@ class PlaceBetNewVersionController extends Controller
         // Release the Redis lock
         Redis::del("wallet:lock:$userId");
 
-        // Return success response
         return SlotWebhookService::buildResponse(
             SlotWebhookResponseCode::Success,
             $after_balance,
